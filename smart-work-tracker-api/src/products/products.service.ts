@@ -1,60 +1,44 @@
-import { Injectable } from '@nestjs/common';
-
-export interface Task {
-  id: number;
-  name: string;
-  price: number;
-}
-
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { Model} from 'mongoose';
+import { InjectModel } from '@nestjs/mongoose';
+import { Task,TaskDocument,TaskSchema } from './schemas/product.schema.js';
+import { CreateProductDto } from './dto/create-product.dto.js';
+import { UpdateProductDto } from './dto/update-product.dto.js';
+import { userInfo } from 'os';
 @Injectable()
-export class ProductService {
-  private tasks: Task[] = [
-    {
-      id: 1,
-      name: 'Laptop',
-      price: 55000,
-    },
-    {
-      id: 2,
-      name: 'Keyboard',
-      price: 1500,
-    },
-    {
-      id: 3,
-      name: 'Mouse',
-      price: 800,
-    },
-    {
-      id: 4,
-      name: 'Monitor',
-      price: 12000,
-    },
-    {
-      id: 5,
-      name: 'Headphones',
-      price: 2500,
-    },
-  ];
+export class ProductService{
+  constructor(@InjectModel(Task.name) private taskmodel:Model<TaskDocument>){}
+async find(): Promise<Task[]>{
+  return this.taskmodel.find();
+}
+async create(createproductdto:CreateProductDto):Promise<TaskDocument>{
+  return this.taskmodel.create(createproductdto)
+}
+async productbyId(id:string){
+  try {
+    const Task=await this.taskmodel.findOne({id:id});
+    if(!Task){
+      throw new HttpException('Product not found', HttpStatus.NOT_FOUND);
+    }
+    return Task;
+  } catch (error) {
+    throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
+    
+  }
+}
+async updatebyId(id:string,dto:CreateProductDto){
+  return this.taskmodel.findOneAndUpdate({id:id},dto,{new:true});
+  // async updatebyId(id:string,dto:CreateProductDto){
+  // const findprod=await this.taskmodel.findOne({id:id});
+  // if(!findprod){
+  //   return{
+  //     messege:"user not found"
+  //   }
+  // }
+  //   findprod.name=dto.name;
+  //   findprod.price=dto.price;
+  //   await findprod.save();
+  // }
 
-  getall(): Task[] {
-    return this.tasks;
-  }
-  removeid(id: number): Task[] {
-    return this.tasks.filter((item) => item.id !== id);
-  }
-  getbyId(id:number):Task|undefined {
-    return this.tasks.find((item)=>item.id==id)
-  }
-  filterproducts(name?:string):Task[]{
-    const search = name?.toLowerCase().trim() || '';
-    return this.tasks.filter((items)=>items.name.toLowerCase().includes(search))
-  }
-
-//   filterproducts(name?: string): Task[] {
-//   if (!name) return this.tasks; // Return all tasks if name is undefined or empty
-  
-//   const searchTerm = name.toLowerCase().trim();
-//   return this.tasks.filter((item) => 
-//     item.name.toLowerCase().includes(searchTerm)
-//   );
+}
 }
